@@ -5,18 +5,47 @@ import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+type Profile = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  expiry_date: string | null;
+  role: string;
+};
+
+type Project = {
+  id: string;
+  name: string;
+  client_name: string | null;
+  location: string | null;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [expired, setExpired] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    client_name: "",
+    location: "",
+    description: "",
+  });
 
   useEffect(() => {
     const supabase = createClient();
 
-    const checkUserAndExpiry = async () => {
+    const checkUserAndLoad = async () => {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
@@ -26,15 +55,12 @@ export default function HomePage() {
 
       setUser(user);
 
-      const { data: profileData, error } = await supabase
+      // ดึง profile
+      const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .maybeSingle();
-
-      if (error) {
-        console.error("Error ดึง profile:", error);
-      }
 
       if (profileData) {
         setProfile(profileData);
@@ -48,19 +74,79 @@ export default function HomePage() {
           if (expiry < today) {
             setExpired(true);
             await supabase.auth.signOut();
-            setTimeout(() => {
-              router.push("/login");
-            }, 2000);
+            setTimeout(() => router.push("/login"), 2000);
             return;
           }
         }
       }
 
+      // ดึงโปรเจกต์
+      await loadProjects(user.id);
       setLoading(false);
     };
 
-    checkUserAndExpiry();
+    checkUserAndLoad();
   }, [router]);
+
+  const loadProjects = async (userId: string) => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false });
+
+    if (!error) {
+      setProjects(data || []);
+    }
+  };
+
+  const handleCreateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setFormLoading(true);
+    const supabase = createClient();
+
+    const { data, error } = await supabase
+      .from("projects")
+      .insert({
+        user_id: user.id,
+        name: form.name,
+        client_name: form.client_name || null,
+        location: form.location || null,
+        description: form.description || null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      alert("สร้างโปรเจกต์ไม่สำเร็จ: " + error.message);
+    } else {
+      setForm({ name: "", client_name: "", location: "", description: "" });
+      setShowForm(false);
+      await loadProjects(user.id);
+      // เปิดโปรเจกต์ใหม่ทันที
+      if (data) {
+        router.push(`/projects/${data.id}`);
+      }
+    }
+
+    setFormLoading(false);
+  };
+
+  const handleDeleteProject = async (id: string, name: string) => {
+    if (!confirm(`ต้องการลบโปรเจกต์ "${name}" จริงหรือไม่?`)) return;
+
+    const supabase = createClient();
+    const { error } = await supabase.from("projects").delete().eq("id", id);
+
+    if (error) {
+      alert("ลบไม่สำเร็จ: " + error.message);
+    } else if (user) {
+      await loadProjects(user.id);
+    }
+  };
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -83,7 +169,7 @@ export default function HomePage() {
           <CardHeader>
             <CardTitle className="text-red-600">บัญชีหมดอายุแล้ว</CardTitle>
             <CardDescription>
-              ระยะเวลาการใช้งานของคุณหมดอายุแล้ว กรุณาติดต่อผู้ดูแลระบบเพื่อต่ออายุ
+              กรุณาติดต่อผู้ดูแลระบบเพื่อต่ออายุ
             </CardDescription>
           </CardHeader>
         </Card>
@@ -116,11 +202,7 @@ export default function HomePage() {
             </div>
 
             {profile?.role === "admin" && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push("/admin")}
-              >
+              <Button variant="outline" size="sm" onClick={() => router.push("/admin")}>
                 หน้าแอดมิน
               </Button>
             )}
@@ -134,67 +216,136 @@ export default function HomePage() {
 
       {/* Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-slate-800">
-            ยินดีต้อนรับ, {displayName}
-          </h2>
-          <p className="text-slate-500 mt-1">
-            ระบบประมาณราคาก่อสร้าง
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">
+              ยินดีต้อนรับ, {displayName}
+            </h2>
+            <p className="text-slate-500 mt-1">ระบบประมาณราคาก่อสร้าง</p>
+          </div>
+          <Button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {showForm ? "ปิดฟอร์ม" : "+ สร้างโปรเจกต์ใหม่"}
+          </Button>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+        {/* ฟอร์มสร้างโปรเจกต์ */}
+        {showForm && (
+          <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="text-lg">โปรเจกต์ของฉัน</CardTitle>
-              <CardDescription>
-                สร้างและจัดการโปรเจกต์ประมาณราคา
-              </CardDescription>
+              <CardTitle className="text-lg">สร้างโปรเจกต์ใหม่</CardTitle>
+              <CardDescription>กรอกข้อมูลโครงการ</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" disabled>
-                เร็ว ๆ นี้
-              </Button>
+              <form onSubmit={handleCreateProject} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="name">ชื่อโปรเจกต์ *</Label>
+                    <Input
+                      id="name"
+                      required
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      placeholder="เช่น บ้านพักอาศัย 3 ชั้น"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="client_name">ชื่อลูกค้า</Label>
+                    <Input
+                      id="client_name"
+                      value={form.client_name}
+                      onChange={(e) => setForm({ ...form, client_name: e.target.value })}
+                      placeholder="ชื่อเจ้าของโครงการ"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="location">สถานที่</Label>
+                    <Input
+                      id="location"
+                      value={form.location}
+                      onChange={(e) => setForm({ ...form, location: e.target.value })}
+                      placeholder="จังหวัด / ที่อยู่"
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="description">รายละเอียดเพิ่มเติม</Label>
+                    <Input
+                      id="description"
+                      value={form.description}
+                      onChange={(e) => setForm({ ...form, description: e.target.value })}
+                      placeholder="หมายเหตุ (ถ้ามี)"
+                    />
+                  </div>
+                </div>
+                <Button type="submit" disabled={formLoading}>
+                  {formLoading ? "กำลังสร้าง..." : "สร้างโปรเจกต์"}
+                </Button>
+              </form>
             </CardContent>
           </Card>
+        )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">สถานะบัญชี</CardTitle>
-              <CardDescription>ข้อมูลการใช้งานของคุณ</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-500">สถานะ</span>
-                <span className="text-green-600 font-medium">ใช้งานได้</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">วันหมดอายุ</span>
-                <span className="font-medium">{profile?.expiry_date || "-"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">สิทธิ์</span>
-                <span className="font-medium capitalize">{profile?.role || "user"}</span>
-              </div>
-            </CardContent>
-          </Card>
+        {/* รายการโปรเจกต์ */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-slate-500">
+            โปรเจกต์ของฉัน ({projects.length})
+          </h3>
 
-          {profile?.role === "admin" && (
-            <Card className="border-purple-200 bg-purple-50/50">
-              <CardHeader>
-                <CardTitle className="text-lg text-purple-800">จัดการระบบ</CardTitle>
-                <CardDescription>สำหรับผู้ดูแลระบบ</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  variant="outline"
-                  className="w-full border-purple-300 text-purple-700 hover:bg-purple-100"
-                  onClick={() => router.push("/admin")}
-                >
-                  ไปหน้าแอดมิน
+          {projects.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-slate-400 mb-4">ยังไม่มีโปรเจกต์</p>
+                <Button onClick={() => setShowForm(true)}>
+                  + สร้างโปรเจกต์แรก
                 </Button>
               </CardContent>
             </Card>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {projects.map((project) => (
+                <Card
+                  key={project.id}
+                  className="hover:shadow-md transition-shadow cursor-pointer group"
+                >
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base line-clamp-1">
+                      {project.name}
+                    </CardTitle>
+                    <CardDescription className="line-clamp-1">
+                      {project.client_name || "ไม่ระบุลูกค้า"}
+                      {project.location ? ` • ${project.location}` : ""}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => router.push(`/projects/${project.id}`)}
+                      >
+                        เปิด
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteProject(project.id, project.name);
+                        }}
+                      >
+                        ลบ
+                      </Button>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-2">
+                      อัปเดต {new Date(project.updated_at).toLocaleDateString("th-TH")}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
         </div>
       </main>
