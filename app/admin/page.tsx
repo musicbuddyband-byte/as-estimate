@@ -216,8 +216,8 @@ export default function AdminPage() {
         )}
 
         {/* ตารางรายชื่อ User */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-white rounded-lg shadow overflow-x-auto">
+  <table className="w-full text-sm min-w-[600px]">
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="text-left px-4 py-3">อีเมล</th>
