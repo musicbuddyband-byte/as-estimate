@@ -155,6 +155,22 @@ export default function AdminPage() {
               {showForm ? "ปิดฟอร์ม" : "+ เพิ่มผู้ใช้"}
             </Button>
             <Button
+  size="sm"
+  variant="outline"
+  onClick={() => router.push("/admin/items")}
+>
+  Master วัสดุ
+</Button>
+
+<Button
+  size="sm"
+  variant="outline"
+  onClick={() => router.push("/admin/standards")}
+>
+  Master มาตรฐาน
+</Button>
+
+            <Button
               variant="outline"
               size="sm"
               onClick={() => router.push("/")}
