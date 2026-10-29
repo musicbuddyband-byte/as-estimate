@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function HomePage() {
   const router = useRouter();
@@ -16,24 +18,19 @@ export default function HomePage() {
 
     const checkUserAndExpiry = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      console.log("Home - user:", user);
 
       if (!user) {
-        console.log("Home - ไม่พบ user → กลับไป login");
         router.push("/login");
         return;
       }
 
       setUser(user);
 
-      // ดึงข้อมูล profile
       const { data: profileData, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .maybeSingle();
-
-      console.log("Home - profile:", profileData);
 
       if (error) {
         console.error("Error ดึง profile:", error);
@@ -42,7 +39,6 @@ export default function HomePage() {
       if (profileData) {
         setProfile(profileData);
 
-        // ตรวจสอบวันหมดอายุ
         if (profileData.expiry_date) {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
@@ -74,8 +70,8 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>กำลังตรวจสอบสิทธิ์การใช้งาน...</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <p className="text-slate-500">กำลังตรวจสอบสิทธิ์การใช้งาน...</p>
       </div>
     );
   }
@@ -83,61 +79,125 @@ export default function HomePage() {
   if (expired) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-red-50">
-        <div className="bg-white p-8 rounded-lg shadow-md text-center max-w-md">
-          <h1 className="text-xl font-bold text-red-600 mb-3">บัญชีหมดอายุแล้ว</h1>
-          <p className="text-gray-600">กำลังนำคุณกลับไปหน้าเข้าสู่ระบบ...</p>
-        </div>
+        <Card className="max-w-md w-full mx-4">
+          <CardHeader>
+            <CardTitle className="text-red-600">บัญชีหมดอายุแล้ว</CardTitle>
+            <CardDescription>
+              ระยะเวลาการใช้งานของคุณหมดอายุแล้ว กรุณาติดต่อผู้ดูแลระบบเพื่อต่ออายุ
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     );
   }
 
+  const displayName = profile?.full_name || user?.email?.split("@")[0] || "ผู้ใช้งาน";
+
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="bg-white shadow">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">AS Estimate</h1>
-          <div className="flex items-center gap-4">
-  <div className="text-right">
-    <div className="text-sm text-gray-600">{user?.email}</div>
-    {profile?.expiry_date && (
-      <div className="text-xs text-gray-400">
-        ใช้ได้ถึง: {profile.expiry_date}
-      </div>
-    )}
-  </div>
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <header className="bg-white border-b sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+              AS
+            </div>
+            <h1 className="text-lg font-semibold text-slate-800">AS Estimate</h1>
+          </div>
 
-  {profile?.role === "admin" && (
-    <button
-      onClick={() => router.push("/admin")}
-      className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 text-sm"
-    >
-      หน้าแอดมิน
-    </button>
-  )}
+          <div className="flex items-center gap-3">
+            <div className="text-right hidden sm:block">
+              <div className="text-sm font-medium text-slate-700">{displayName}</div>
+              {profile?.expiry_date && (
+                <div className="text-xs text-slate-400">
+                  ใช้ได้ถึง {profile.expiry_date}
+                </div>
+              )}
+            </div>
 
-  <button
-    onClick={handleLogout}
-    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm"
-  >
-    ออกจากระบบ
-  </button>
-</div>
+            {profile?.role === "admin" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push("/admin")}
+              >
+                หน้าแอดมิน
+              </Button>
+            )}
+
+            <Button variant="destructive" size="sm" onClick={handleLogout}>
+              ออกจากระบบ
+            </Button>
+          </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-6xl mx-auto px-4 py-10">
-        <h2 className="text-2xl font-bold mb-2">ยินดีต้อนรับ</h2>
-        <p className="text-gray-600 mb-6">ระบบประมาณราคาก่อสร้าง</p>
-
-        <div className="bg-white p-6 rounded-lg shadow">
-          <p className="mb-2">
-            สถานะบัญชี: <span className="text-green-600 font-medium">ใช้งานได้</span>
-          </p>
-          <p className="text-sm text-gray-500">
-            วันหมดอายุ: {profile?.expiry_date || "ไม่ระบุ"}
+      {/* Content */}
+      <main className="max-w-6xl mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-slate-800">
+            ยินดีต้อนรับ, {displayName}
+          </h2>
+          <p className="text-slate-500 mt-1">
+            ระบบประมาณราคาก่อสร้าง
           </p>
         </div>
-      </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardHeader>
+              <CardTitle className="text-lg">โปรเจกต์ของฉัน</CardTitle>
+              <CardDescription>
+                สร้างและจัดการโปรเจกต์ประมาณราคา
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full" disabled>
+                เร็ว ๆ นี้
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">สถานะบัญชี</CardTitle>
+              <CardDescription>ข้อมูลการใช้งานของคุณ</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-500">สถานะ</span>
+                <span className="text-green-600 font-medium">ใช้งานได้</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">วันหมดอายุ</span>
+                <span className="font-medium">{profile?.expiry_date || "-"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">สิทธิ์</span>
+                <span className="font-medium capitalize">{profile?.role || "user"}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {profile?.role === "admin" && (
+            <Card className="border-purple-200 bg-purple-50/50">
+              <CardHeader>
+                <CardTitle className="text-lg text-purple-800">จัดการระบบ</CardTitle>
+                <CardDescription>สำหรับผู้ดูแลระบบ</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="outline"
+                  className="w-full border-purple-300 text-purple-700 hover:bg-purple-100"
+                  onClick={() => router.push("/admin")}
+                >
+                  ไปหน้าแอดมิน
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </main>
     </div>
   );
 }
