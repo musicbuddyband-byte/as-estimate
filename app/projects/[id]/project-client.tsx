@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -16,10 +16,8 @@ type Project = {
   updated_at: string;
 };
 
-export default function ProjectClient() {
+export default function ProjectClient({ projectId }: { projectId: string }) {
   const router = useRouter();
-  const params = useParams();
-  const projectId = params.id as string;
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
