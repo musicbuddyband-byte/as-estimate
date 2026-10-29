@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { createUser } from "./actions";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type Profile = {
   id: string;
@@ -23,7 +27,6 @@ export default function AdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
 
-  // ข้อมูลฟอร์มเพิ่ม User
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -100,7 +103,7 @@ export default function AdminPage() {
       alert(result.message);
       setForm({ email: "", password: "", full_name: "", expiry_date: "" });
       setShowForm(false);
-      await loadProfiles(); // โหลดรายชื่อใหม่
+      await loadProfiles();
     } else {
       alert("เกิดข้อผิดพลาด: " + result.message);
     }
@@ -110,171 +113,247 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>กำลังโหลด...</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <p className="text-slate-500">กำลังโหลด...</p>
       </div>
     );
   }
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 text-lg mb-4">{message}</p>
-          <button
-            onClick={() => router.push("/")}
-            className="bg-blue-600 text-white px-4 py-2 rounded"
-          >
-            กลับหน้าแรก
-          </button>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Card className="max-w-md w-full mx-4">
+          <CardHeader>
+            <CardTitle className="text-red-600">ไม่มีสิทธิ์เข้าถึง</CardTitle>
+            <CardDescription>{message}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => router.push("/")} className="w-full">
+              กลับหน้าแรก
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">หน้าแอดมิน - จัดการผู้ใช้</h1>
-          <div className="flex gap-3">
-            <button
+      <header className="bg-white border-b sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+          <div>
+            <h1 className="text-lg font-semibold text-slate-800">จัดการผู้ใช้</h1>
+            <p className="text-xs text-slate-400">หน้าแอดมิน</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
               onClick={() => setShowForm(!showForm)}
-              className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700"
             >
               {showForm ? "ปิดฟอร์ม" : "+ เพิ่มผู้ใช้"}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => router.push("/")}
-              className="text-sm text-blue-600 hover:underline"
             >
-              ← กลับหน้าแรก
-            </button>
+              ← กลับ
+            </Button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         {/* ฟอร์มเพิ่ม User */}
         {showForm && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-lg font-bold mb-4">เพิ่มผู้ใช้ใหม่</h2>
-            <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">อีเมล</label>
-                <input
-                  type="email"
-                  required
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">รหัสผ่าน</label>
-                <input
-                  type="text"
-                  required
-                  minLength={6}
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="w-full border rounded px-3 py-2"
-                  placeholder="อย่างน้อย 6 ตัวอักษร"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">ชื่อ</label>
-                <input
-                  type="text"
-                  value={form.full_name}
-                  onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">วันหมดอายุ</label>
-                <input
-                  type="date"
-                  required
-                  value={form.expiry_date}
-                  onChange={(e) => setForm({ ...form, expiry_date: e.target.value })}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <button
-                  type="submit"
-                  disabled={formLoading}
-                  className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:bg-blue-300"
-                >
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">เพิ่มผู้ใช้ใหม่</CardTitle>
+              <CardDescription>กรอกข้อมูลเพื่อสร้างบัญชีผู้ใช้</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">อีเมล</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      required
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      placeholder="user@email.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">รหัสผ่าน</Label>
+                    <Input
+                      id="password"
+                      type="text"
+                      required
+                      minLength={6}
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      placeholder="อย่างน้อย 6 ตัวอักษร"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="full_name">ชื่อ</Label>
+                    <Input
+                      id="full_name"
+                      type="text"
+                      value={form.full_name}
+                      onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                      placeholder="ชื่อ-นามสกุล"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="expiry_date">วันหมดอายุ</Label>
+                    <Input
+                      id="expiry_date"
+                      type="date"
+                      required
+                      value={form.expiry_date}
+                      onChange={(e) => setForm({ ...form, expiry_date: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <Button type="submit" disabled={formLoading} className="w-full sm:w-auto">
                   {formLoading ? "กำลังสร้าง..." : "สร้างผู้ใช้"}
-                </button>
-              </div>
-            </form>
-          </div>
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         )}
 
-        {/* ตารางรายชื่อ User */}
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
-  <table className="w-full text-sm min-w-[600px]">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="text-left px-4 py-3">อีเมล</th>
-                <th className="text-left px-4 py-3">ชื่อ</th>
-                <th className="text-left px-4 py-3">วันหมดอายุ</th>
-                <th className="text-left px-4 py-3">สิทธิ์</th>
-                <th className="text-left px-4 py-3">จัดการ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {profiles.map((profile) => (
-                <tr key={profile.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3">{profile.email}</td>
-                  <td className="px-4 py-3">{profile.full_name || "-"}</td>
-                  <td className="px-4 py-3">
-                    <input
-                      type="date"
-                      defaultValue={profile.expiry_date || ""}
-                      className="border rounded px-2 py-1"
-                    />
-                  </td>
-                  <td className="px-4 py-3">
+        {/* รายชื่อ User - แบบการ์ด (มือถือ) + ตาราง (คอม) */}
+        <div className="space-y-3">
+          <h2 className="text-sm font-medium text-slate-500">
+            ผู้ใช้ทั้งหมด ({profiles.length})
+          </h2>
+
+          {/* มือถือ: แสดงเป็น Card */}
+          <div className="space-y-3 md:hidden">
+            {profiles.map((profile) => (
+              <Card key={profile.id}>
+                <CardContent className="pt-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium text-slate-800">
+                        {profile.full_name || "-"}
+                      </p>
+                      <p className="text-sm text-slate-500">{profile.email}</p>
+                    </div>
                     <span
-                      className={`px-2 py-1 rounded text-xs ${
+                      className={`text-xs px-2 py-1 rounded-full ${
                         profile.role === "admin"
                           ? "bg-purple-100 text-purple-700"
-                          : "bg-gray-100 text-gray-700"
+                          : "bg-slate-100 text-slate-600"
                       }`}
                     >
                       {profile.role}
                     </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={(e) => {
-                        const input = e.currentTarget
-                          .closest("tr")
-                          ?.querySelector("input[type=date]") as HTMLInputElement;
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="date"
+                      defaultValue={profile.expiry_date || ""}
+                      className="text-sm"
+                      id={`date-${profile.id}`}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const input = document.getElementById(
+                          `date-${profile.id}`
+                        ) as HTMLInputElement;
                         if (input?.value) {
                           updateExpiry(profile.id, input.value);
                         }
                       }}
-                      className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
                     >
                       บันทึก
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* คอม: แสดงเป็นตาราง */}
+          <div className="hidden md:block">
+            <Card>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-slate-50">
+                      <th className="text-left px-4 py-3 font-medium text-slate-600">อีเมล</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-600">ชื่อ</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-600">วันหมดอายุ</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-600">สิทธิ์</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-600">จัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {profiles.map((profile) => (
+                      <tr key={profile.id} className="border-b hover:bg-slate-50">
+                        <td className="px-4 py-3">{profile.email}</td>
+                        <td className="px-4 py-3">{profile.full_name || "-"}</td>
+                        <td className="px-4 py-3">
+                          <Input
+                            type="date"
+                            defaultValue={profile.expiry_date || ""}
+                            className="w-40 h-8 text-sm"
+                            id={`date-desk-${profile.id}`}
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              profile.role === "admin"
+                                ? "bg-purple-100 text-purple-700"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            {profile.role}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const input = document.getElementById(
+                                `date-desk-${profile.id}`
+                              ) as HTMLInputElement;
+                              if (input?.value) {
+                                updateExpiry(profile.id, input.value);
+                              }
+                            }}
+                          >
+                            บันทึก
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </div>
 
           {profiles.length === 0 && (
-            <p className="text-center py-8 text-gray-500">ยังไม่มีผู้ใช้</p>
+            <Card>
+              <CardContent className="py-10 text-center text-slate-400">
+                ยังไม่มีผู้ใช้
+              </CardContent>
+            </Card>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
