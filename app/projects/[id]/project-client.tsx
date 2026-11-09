@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import AppSidebar from "@/components/AppSidebar";
 
 type Project = {
   id: string;
@@ -62,7 +63,9 @@ export default function ProjectClient({ projectId }: { projectId: string }) {
   if (!project) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+  <div className="min-h-screen bg-slate-50 flex">
+    <AppSidebar projectId={projectId} projectName={project?.name ?? null} />
+    <div className="flex-1 min-w-0">
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -108,29 +111,40 @@ export default function ProjectClient({ projectId }: { projectId: string }) {
           </CardContent>
         </Card>
 
-        <h2 className="text-sm font-medium text-slate-500 mb-3">หมวดงานประมาณราคา</h2>
+                <h2 className="text-sm font-medium text-slate-500 mb-3">หมวดงานประมาณราคา</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            "งานโครงสร้าง",
-            "งานหลังคา",
-            "งานสถาปัตยกรรม",
-            "งานไฟฟ้า",
-            "งานประปา-สุขาภิบาล",
-            "สรุป BOQ",
-          ].map((category) => (
-            <Card key={category} className="opacity-60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">{category}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Button size="sm" disabled className="w-full">
-                  เร็ว ๆ นี้
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+  { name: "งานโครงสร้าง", path: `/projects/${projectId}/structure`, ready: true },
+  { name: "งานหลังคา", path: "", ready: false },
+  { name: "งานสถาปัตยกรรม", path: "", ready: false },
+  { name: "งานไฟฟ้า", path: "", ready: false },
+  { name: "งานประปา-สุขาภิบาล", path: "", ready: false },
+  { name: "สรุป BOQ", path: `/projects/${projectId}/boq`, ready: true },
+].map((category) => (
+  <Card key={category.name} className={category.ready ? "" : "opacity-60"}>
+    <CardHeader className="pb-2">
+      <CardTitle className="text-base">{category.name}</CardTitle>
+    </CardHeader>
+    <CardContent>
+      {category.ready ? (
+        <Button
+          size="sm"
+          className="w-full"
+          onClick={() => router.push(category.path)}
+        >
+          เปิด
+        </Button>
+      ) : (
+        <Button size="sm" disabled className="w-full">
+          เร็ว ๆ นี้
+        </Button>
+      )}
+    </CardContent>
+  </Card>
+))}
         </div>
       </main>
+    </div>
     </div>
   );
 }

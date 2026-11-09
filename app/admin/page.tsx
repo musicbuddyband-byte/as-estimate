@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import AppSidebar from "@/components/AppSidebar";
 
 type Profile = {
   id: string;
@@ -137,24 +138,33 @@ export default function AdminPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
-          <div>
-            <h1 className="text-lg font-semibold text-slate-800">จัดการผู้ใช้</h1>
-            <p className="text-xs text-slate-400">หน้าแอดมิน</p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={() => setShowForm(!showForm)}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {showForm ? "ปิดฟอร์ม" : "+ เพิ่มผู้ใช้"}
-            </Button>
-            <Button
+    return (
+    <div className="min-h-screen bg-slate-50 flex">
+      <AppSidebar />
+      <div className="flex-1 min-w-0">
+        {/* Header */}
+        <header className="bg-white border-b sticky top-0 z-10">
+          <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div>
+              <h1 className="text-lg font-semibold text-slate-800">จัดการผู้ใช้</h1>
+              <p className="text-xs text-slate-400">หน้าแอดมิน</p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => setShowForm(!showForm)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {showForm ? "ปิดฟอร์ม" : "+ เพิ่มผู้ใช้"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => router.push("/admin/items")}
+              >
+                Master วัสดุ
+              </Button>
+              <Button
   size="sm"
   variant="outline"
   onClick={() => router.push("/admin/items")}
@@ -370,6 +380,7 @@ export default function AdminPage() {
           )}
         </div>
       </main>
+        </div>
     </div>
   );
 }

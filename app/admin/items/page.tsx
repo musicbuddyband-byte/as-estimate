@@ -12,11 +12,15 @@ type MasterItem = {
   id: string;
   code: string;
   name: string;
+  short_name: string | null;
   category: string;
   sub_category: string | null;
   item_type: "material" | "labor";
   unit: string;
   unit_price: number;
+  unit_weight: number | null;
+  default_waste: number | null;
+  standard_length?: number | null;
   is_active: boolean;
 };
 
@@ -69,11 +73,15 @@ const SUB_CATEGORIES = Object.keys(SUB_CATEGORY_CODES);
 const emptyForm = {
   code: "",
   name: "",
+  short_name: "",
   category: "โครงสร้าง",
   sub_category: "",
   item_type: "material" as "material" | "labor",
   unit: "",
   unit_price: "",
+  unit_weight: "",
+  default_waste: "1.00",
+  standard_length: "",
 };
 
 export default function MasterItemsPage() {
@@ -168,15 +176,19 @@ export default function MasterItemsPage() {
     setFormLoading(true);
     const supabase = createClient();
 
-    const payload = {
+        const payload = {
       code: form.code.trim(),
       name: form.name.trim(),
+      short_name: form.short_name.trim() || null,
       category: form.category,
       sub_category: form.sub_category.trim() || null,
       item_type: form.item_type,
       unit: form.unit.trim(),
       unit_price: parseFloat(form.unit_price) || 0,
+      unit_weight: form.unit_weight ? parseFloat(form.unit_weight) : null,
+      default_waste: form.default_waste ? parseFloat(form.default_waste) : 1,
       updated_at: new Date().toISOString(),
+      standard_length: form.standard_length === "" ? null : parseFloat(form.standard_length),
     };
 
     if (editingId) {
@@ -205,17 +217,22 @@ export default function MasterItemsPage() {
     setFormLoading(false);
   };
 
-  const startEdit = (item: MasterItem) => {
+    const startEdit = (item: MasterItem) => {
     setEditingId(item.id);
     setForm({
       code: item.code,
       name: item.name,
+      short_name: item.short_name || "",
       category: item.category,
       sub_category: item.sub_category || "",
       item_type: item.item_type,
       unit: item.unit,
       unit_price: String(item.unit_price),
-    });
+      unit_weight: item.unit_weight != null ? String(item.unit_weight) : "",
+      default_waste:
+        item.default_waste != null ? String(item.default_waste) : "1.00",
+    standard_length: item.standard_length != null ? String(item.standard_length) : "",
+      });
     setShowForm(true);
   };
 
@@ -361,14 +378,23 @@ export default function MasterItemsPage() {
                       เลือกหมวด + หมวดย่อย + ประเภท แล้วกดสร้างรหัส
                     </p>
                   </div>
-                  <div className="space-y-2">
+                                    <div className="space-y-2">
                     <Label>ชื่อรายการ *</Label>
                     <Input
                       required
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      placeholder="อิฐมอญ"
+                      placeholder="เหล็กเส้นกลม EAF SR24 RB6 2.22กก. / เส้น"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ชื่อย่อ</Label>
+                    <Input
+                      value={form.short_name}
+                      onChange={(e) => setForm({ ...form, short_name: e.target.value })}
+                      placeholder="RB6"
+                    />
+                    <p className="text-xs text-slate-400">ใช้ในหน้าคำนวณโครงสร้าง</p>
                   </div>
                   <div className="space-y-2">
                     <Label>หมวด *</Label>
@@ -420,7 +446,7 @@ export default function MasterItemsPage() {
                       placeholder="ก้อน / ตร.ม. / ลบ.ม."
                     />
                   </div>
-                  <div className="space-y-2">
+                                    <div className="space-y-2">
                     <Label>ราคาต่อหน่วย *</Label>
                     <Input
                       required
@@ -431,6 +457,45 @@ export default function MasterItemsPage() {
                       onChange={(e) => setForm({ ...form, unit_price: e.target.value })}
                       placeholder="0.00"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>น้ำหนักต่อหน่วย (กก. / ม.)</Label>
+                    <Input
+                      type="number"
+                      step="0.0001"
+                      min="0"
+                      value={form.unit_weight}
+                      onChange={(e) => setForm({ ...form, unit_weight: e.target.value })}
+                      placeholder="2.22"
+                    />
+                    <p className="text-xs text-slate-400">ใช้แปลง เส้น ↔ กก. เช่น เหล็ก</p>
+                  </div>
+                  <div className="space-y-2">
+  <Label>ยาวมาตรฐาน 1 เส้น (ม.)</Label>
+  <Input
+    type="number"
+    step="0.01"
+    placeholder="เช่น 10 หรือ 12"
+    value={form.standard_length}
+    onChange={(e) =>
+      setForm({ ...form, standard_length: e.target.value })
+    }
+  />
+  <p className="text-xs text-slate-400">
+    ใช้แปลง กก. → เส้น ร่วมกับน้ำหนัก กก./ม.
+  </p>
+</div>
+                  <div className="space-y-2">
+                    <Label>ตัวคูณเผื่อเริ่มต้น</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={form.default_waste}
+                      onChange={(e) => setForm({ ...form, default_waste: e.target.value })}
+                      placeholder="1.05"
+                    />
+                    <p className="text-xs text-slate-400">เช่น 1.05 = เผื่อ 5% (แก้ในโปรเจกต์ได้ภายหลัง)</p>
                   </div>
 
                 </div>
